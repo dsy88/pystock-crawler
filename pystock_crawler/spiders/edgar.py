@@ -16,7 +16,8 @@ class URLGenerator(object):
         self.end_date = end_date
 
     def __iter__(self):
-        url = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=%s&type=10-&dateb=%s&datea=%s&owner=exclude&count=300'
+        url = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=%s&dateb=%s&datea=%s&owner=exclude&count=300'
+        #url = 'http://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=%s&type=10-&dateb=%s&datea=%s&owner=exclude&count=300'
         for symbol in self.symbols:
             yield (url % (symbol, self.end_date, self.start_date))
 
@@ -58,10 +59,9 @@ class EdgarSpider(CrawlSpider):
         '''Parse 10-Q or 10-K XML report.'''
         loader = ReportItemLoader(response=response)
         item = loader.load_item()
-
         if 'doc_type' in item:
             doc_type = item['doc_type']
-            if doc_type in ('10-Q', '10-K'):
+            if doc_type in ('10-Q', '10-K', '20-F'):
                 return item
 
         return None

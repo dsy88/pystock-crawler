@@ -158,7 +158,8 @@ class ImdSumMembersOr(object):
 def date_range_matches_doc_type(doc_type, start_date, end_date):
     delta_days = (end_date - start_date).days
     return ((doc_type == '10-Q' and delta_days < 120 and delta_days > 60) or
-            (doc_type == '10-K' and delta_days < 380 and delta_days > 350))
+            (doc_type == '10-K' and delta_days < 380 and delta_days > 350) or
+            (doc_type == '20-F' and delta_days < 380 and delta_days > 350))
 
 
 def get_amend(values):
@@ -452,7 +453,7 @@ class ReportItemLoader(XmlXPathItemLoader):
         doc_type = self._get_doc_type()
 
         # ignore document that is not 10-Q or 10-K
-        if not (doc_type and doc_type.split('/')[0] in ('10-Q', '10-K')):
+        if not (doc_type and doc_type.split('/')[0] in ('10-Q', '10-K', '20-F')):
             return
 
         # some documents set their amendment flag in DocumentType, e.g., '10-Q/A',
@@ -475,7 +476,7 @@ class ReportItemLoader(XmlXPathItemLoader):
         else:
             self.add_xpath('amend', '//dei:AmendmentFlag')
 
-        if doc_type == '10-K':
+        if doc_type == '10-K' or doc_type == '20-F':
             period_focus = 'FY'
         else:
             period_focus = self._get_period_focus(end_date)
