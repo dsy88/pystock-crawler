@@ -43,7 +43,6 @@ class ReportItem(Item):
     cash_flow_inv = Field()
     cash_flow_fin = Field()
 
-
 class PriceItem(Item):
     # Trading symbol
     symbol = Field()
@@ -62,3 +61,17 @@ class PriceItem(Item):
 class SymbolItem(Item):
     symbol = Field()
     name = Field()
+
+class DividendItem(Item):
+    name = Field()
+    symbol = Field() 
+    doc_type = Field()
+    
+    declare_date = Field()
+    registration_date = Field()
+    pay_date = Field()
+    
+    dividend = Field()
+    
+    report_url = Field()
+    line_count = Field()

@@ -7,7 +7,7 @@ from scrapy.contrib.loader.processor import Compose, MapCompose, TakeFirst
 from scrapy.utils.misc import arg_to_iter
 from scrapy.utils.python import flatten
 
-from pystock_crawler.items import ReportItem
+from pystock_crawler.items import ReportItem, DividendItem
 
 
 DATE_FORMAT = '%Y-%m-%d'
@@ -380,6 +380,58 @@ class XmlXPathItemLoader(ItemLoader):
         xpaths = arg_to_iter(xpaths)
         return flatten([self.selector.xpath(xpath) for xpath in xpaths])
 
+class DividendItemLoader(XmlXPathItemLoader):
+    
+    default_item_class = DividendItem
+    default_output_processor = TakeFirst()
+
+    
+    def __init__(self, *args, **kwargs):
+        response = kwargs.get('response')
+        if len(response.body) > THRESHOLD_TO_CLEAN:
+            # Remove some useless text to reduce memory usage
+            body, __ = RE_XML_GARBAGE.subn(lambda m: '><', response.body)
+            response = response.replace(body=body)
+            kwargs['response'] = response
+        
+        super(DividendItemLoader, self).__init__(*args, **kwargs)
+        
+        doc_type = response.xpath('//type/text()').extract()
+        
+        months = ['january', 'february', 'march', 'april', 'may', 'june', 'july',\
+                  'august', 'september', 'october', 'november', 'december']
+        markets = ['nyse', 'amex', 'nasdaq']
+        name_line = ['exact', 'name', 'registrant', 'specified', 'charter']
+        lines = response.xpath('//text()').extract()
+        previous = None
+        count = 0
+        for line in lines:
+            if line.strip() == '':
+               continue
+            check_name = True
+            for word in name_line:
+                if word not in line.lower():
+                    check_name = False
+            if check_name:
+                previous.replace("\r\n", " ")
+                self.add_value('name', previous.strip())
+            previous = line
+            count += 1
+            dividends = re.findall('(\d*\.?\d*\s*\w*)\s*per share', line.lower()) 
+            if len(dividends) > 0 and 'dividend' in line.lower() and 'declared' in line.lower():
+                self.add_value('doc_type', '8-K')
+                self.add_value('dividend', dividends[0])
+                m2 = re.search('['+'|'.join(markets)+']+\s*\w*:\s*?(\w+)', line.lower())
+                if m2:
+                    self.add_value('symbol', m2.group(1).upper())
+                dates = re.findall('['+'|'.join(months)+']+ \d+, \d+', line.lower())
+                self.add_value('report_url', response.request.url)
+                if len(dates) < 3:
+                   continue
+                self.add_value('declare_date', dates[0])
+                self.add_value('pay_date', dates[1])
+                self.add_value('registration_date', dates[2])
+        self.add_value('line_count', count)
 
 class ReportItemLoader(XmlXPathItemLoader):
 
